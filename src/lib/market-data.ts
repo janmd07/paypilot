@@ -3,8 +3,8 @@ import { MarketSummaryResource } from './synthesis';
 
 export async function fetchLiveMarketData(): Promise<Required<MarketSummaryResource>['data']> {
   const [btcRes, ethRes] = await Promise.all([
-    fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT', { cache: 'no-store' }),
-    fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=ETHUSDT', { cache: 'no-store' }),
+    fetch('https://api.binance.us/api/v3/ticker/24hr?symbol=BTCUSDT', { cache: 'no-store' }),
+    fetch('https://api.binance.us/api/v3/ticker/24hr?symbol=ETHUSDT', { cache: 'no-store' }),
   ]);
 
   if (!btcRes.ok || !ethRes.ok) {
