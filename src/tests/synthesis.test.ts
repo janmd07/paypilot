@@ -189,4 +189,22 @@ describe('Local Deterministic Synthesizer Tests', () => {
     expect(response).toContain('Recipient Address: 0xrecipientAddressHere');
     expect(response).toContain('Settlement TxHash: 0xtxHashHere');
   });
+
+  it('12. Spending policy request with missing/undefined properties', () => {
+    const prompt = 'Show me my spending limits policy';
+    const incompletePolicy = {
+      allowlistServices: ['*'],
+      lastResetTimestamp: '2026-08-12',
+    } as any;
+
+    const response = synthesizeMarketDataLocally(prompt, mockMarketData, undefined, incompletePolicy);
+
+    expect(response).toContain('Spending Policy Details (Local Synthesis):');
+    expect(response).toContain('Max Per Transaction: not available');
+    expect(response).toContain('Daily Cap: not available');
+    expect(response).toContain('Spent Today: not available');
+    expect(response).toContain('Remaining Daily Allowance: not available');
+    expect(response).toContain('Approval Threshold: not available');
+    expect(response).toContain('Policy Engine Status: not available');
+  });
 });

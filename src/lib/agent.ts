@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import { executeX402PaymentAndFetch, ExecutionTraceStep, PaymentAuditRecord } from './x402-client';
 import { synthesizeMarketDataLocally, MarketSummaryResource } from './synthesis';
 import { globalPolicyEngine } from './policy';
+import { dataStore } from './storage';
 
 export interface AgentRunResult {
   success: boolean;
@@ -23,6 +24,7 @@ export async function runPayPilotAgent(
 ): Promise<AgentRunResult> {
   const taskId = 'task-' + Date.now();
   const apiKey = process.env.OPENAI_API_KEY;
+  const currentPolicy = await dataStore.getPolicy();
 
   if (!apiKey || apiKey.trim() === '' || apiKey.includes('your-openai-api-key')) {
     const errorMsg = 'OPENAI_API_KEY is not configured in server-side environment variables (.env.local).';
@@ -35,7 +37,7 @@ export async function runPayPilotAgent(
       executionTrace: initialResult.trace,
       paymentAudit: initialResult.auditRecord,
       aiResponse: initialResult.success
-        ? `[PayPilot Fallback Synthesis]\n\n${synthesizeMarketDataLocally(userTask, initialResult.resourceData as MarketSummaryResource, initialResult.auditRecord, globalPolicyEngine.getPolicy())}`
+        ? `[PayPilot Fallback Synthesis]\n\n${synthesizeMarketDataLocally(userTask, initialResult.resourceData as MarketSummaryResource, initialResult.auditRecord, currentPolicy)}`
         : undefined,
       error: initialResult.success ? undefined : initialResult.error || errorMsg,
     };
@@ -149,6 +151,7 @@ export async function runPayPilotAgent(
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Agent execution failed';
     const fallbackResult = await executeX402PaymentAndFetch(`${originUrl}/api/paid/market-summary`, taskId, userWalletAddress);
+    const activePolicy = await dataStore.getPolicy();
     return {
       success: fallbackResult.success,
       taskId,
@@ -156,7 +159,7 @@ export async function runPayPilotAgent(
       executionTrace: fallbackResult.trace,
       paymentAudit: fallbackResult.auditRecord,
       aiResponse: fallbackResult.success
-        ? `[PayPilot Fallback Synthesis]\n\n${synthesizeMarketDataLocally(userTask, fallbackResult.resourceData as MarketSummaryResource)}`
+        ? `[PayPilot Fallback Synthesis]\n\n${synthesizeMarketDataLocally(userTask, fallbackResult.resourceData as MarketSummaryResource, fallbackResult.auditRecord, activePolicy)}`
         : undefined,
       error: fallbackResult.success ? undefined : msg,
     };

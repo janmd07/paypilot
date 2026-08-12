@@ -33,7 +33,7 @@ export interface MarketSummaryResource {
   };
 }
 
-function isPresent(val: string | number | undefined | null): boolean {
+function isPresent(val: string | number | boolean | undefined | null): boolean {
   if (val === undefined || val === null) return false;
   if (typeof val === 'string' && val.trim() === '') return false;
   return true;
@@ -100,12 +100,12 @@ export function synthesizeMarketDataLocally(
 
   // 2. Spending policy / allowance / limits
   if (isPolicy) {
-    const maxTx = policy ? `$${policy.maxPerTransactionUSDC.toFixed(2)} USDC` : 'not configured';
-    const limit = policy ? `$${policy.dailyLimitUSDC.toFixed(2)} USDC` : 'not configured';
-    const spent = policy ? `$${policy.spentTodayUSDC.toFixed(2)} USDC` : 'not configured';
-    const remaining = policy ? `$${(policy.dailyLimitUSDC - policy.spentTodayUSDC).toFixed(2)} USDC` : 'not configured';
-    const approvalThreshold = policy ? `$${policy.requireApprovalAboveUSDC.toFixed(2)} USDC` : 'not configured';
-    const status = policy ? (policy.isPaused ? 'PAUSED' : 'ACTIVE') : 'unknown';
+    const maxTx = (policy && isPresent(policy.maxPerTransactionUSDC)) ? `$${policy.maxPerTransactionUSDC.toFixed(2)} USDC` : 'not available';
+    const limit = (policy && isPresent(policy.dailyLimitUSDC)) ? `$${policy.dailyLimitUSDC.toFixed(2)} USDC` : 'not available';
+    const spent = (policy && isPresent(policy.spentTodayUSDC)) ? `$${policy.spentTodayUSDC.toFixed(2)} USDC` : 'not available';
+    const remaining = (policy && isPresent(policy.dailyLimitUSDC) && isPresent(policy.spentTodayUSDC)) ? `$${(policy.dailyLimitUSDC - policy.spentTodayUSDC).toFixed(2)} USDC` : 'not available';
+    const approvalLine = (policy && isPresent(policy.requireApprovalAboveUSDC)) ? `- Approval Threshold: Requires manual user authorization above $${policy.requireApprovalAboveUSDC.toFixed(2)} USDC` : '- Approval Threshold: not available';
+    const status = (policy && isPresent(policy.isPaused)) ? (policy.isPaused ? 'PAUSED' : 'ACTIVE') : 'not available';
 
     return [
       'Spending Policy Details (Local Synthesis):',
@@ -113,7 +113,7 @@ export function synthesizeMarketDataLocally(
       `- Daily Cap: ${limit}`,
       `- Spent Today: ${spent}`,
       `- Remaining Daily Allowance: ${remaining}`,
-      `- Approval Threshold: Requires manual user authorization above ${approvalThreshold}`,
+      approvalLine,
       `- Policy Engine Status: ${status}`
     ].join('\n');
   }
