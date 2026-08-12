@@ -127,4 +127,66 @@ describe('Local Deterministic Synthesizer Tests', () => {
     expect(response).toContain('ETH/USD: ETH price is unavailable');
     expect(response).toContain('Base Sepolia Gas: gas price is unavailable');
   });
+
+  it('9. Risk assessment request', () => {
+    const prompt = 'Is this transaction safe? run a risk assessment';
+    const response = synthesizeMarketDataLocally(prompt, mockMarketData);
+
+    expect(response).toContain('PayPilot Risk Assessment (Local Synthesis):');
+    expect(response).toContain('Overall Status: SECURE & COMPLIANT');
+    expect(response).toContain('Hardcoded exclusively to Base Sepolia Testnet');
+    expect(response).not.toContain('BTC/USD Range');
+  });
+
+  it('10. Spending policy request', () => {
+    const mockPolicy = {
+      maxPerTransactionUSDC: 2.5,
+      dailyLimitUSDC: 10.0,
+      spentTodayUSDC: 1.5,
+      allowlistServices: ['*'],
+      requireApprovalAboveUSDC: 5.0,
+      isPaused: false,
+      lastResetTimestamp: '2026-08-12',
+    };
+
+    const prompt = 'What is my spending cap and current allowance?';
+    const response = synthesizeMarketDataLocally(prompt, mockMarketData, undefined, mockPolicy);
+
+    expect(response).toContain('Spending Policy Details (Local Synthesis):');
+    expect(response).toContain('Max Per Transaction: $2.50 USDC');
+    expect(response).toContain('Daily Cap: $10.00 USDC');
+    expect(response).toContain('Spent Today: $1.50 USDC');
+    expect(response).toContain('Remaining Daily Allowance: $8.50 USDC');
+    expect(response).toContain('Requires manual user authorization above $5.00 USDC');
+    expect(response).toContain('Policy Engine Status: ACTIVE');
+  });
+
+  it('11. Payment receipt request', () => {
+    const mockAudit = {
+      id: 'audit-123',
+      taskId: 'task-456',
+      timestamp: '6:00:00 pm',
+      isoTimestamp: '2026-08-12T12:30:00.000Z',
+      amountUSDC: 0.01,
+      asset: 'USDC',
+      network: 'eip155:84532',
+      chainId: 84532,
+      recipient: '0xrecipientAddressHere',
+      service: 'Paid API',
+      endpoint: '/api/paid/market-summary',
+      status: 'SETTLED' as const,
+      txHash: '0xtxHashHere',
+    };
+
+    const prompt = 'Show me the payment receipt and invoice hash';
+    const response = synthesizeMarketDataLocally(prompt, mockMarketData, mockAudit);
+
+    expect(response).toContain('Payment Audit Receipt (Local Synthesis):');
+    expect(response).toContain('Audit Record ID: audit-123');
+    expect(response).toContain('Task ID Reference: task-456');
+    expect(response).toContain('Status: SETTLED');
+    expect(response).toContain('Amount Sended: $0.01 USDC');
+    expect(response).toContain('Recipient Address: 0xrecipientAddressHere');
+    expect(response).toContain('Settlement TxHash: 0xtxHashHere');
+  });
 });

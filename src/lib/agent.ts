@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import { executeX402PaymentAndFetch, ExecutionTraceStep, PaymentAuditRecord } from './x402-client';
 import { synthesizeMarketDataLocally, MarketSummaryResource } from './synthesis';
+import { globalPolicyEngine } from './policy';
 
 export interface AgentRunResult {
   success: boolean;
@@ -34,7 +35,7 @@ export async function runPayPilotAgent(
       executionTrace: initialResult.trace,
       paymentAudit: initialResult.auditRecord,
       aiResponse: initialResult.success
-        ? `[Simulated AI Synthesis (Missing OPENAI_API_KEY)]\n\n${JSON.stringify((initialResult.resourceData as Record<string, unknown>)?.data || initialResult.resourceData, null, 2)}`
+        ? `[PayPilot Fallback Synthesis]\n\n${synthesizeMarketDataLocally(userTask, initialResult.resourceData as MarketSummaryResource, initialResult.auditRecord, globalPolicyEngine.getPolicy())}`
         : undefined,
       error: initialResult.success ? undefined : initialResult.error || errorMsg,
     };

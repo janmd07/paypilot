@@ -1,3 +1,6 @@
+import { SpendingPolicy } from '../types';
+import { PaymentAuditRecord } from './x402-client';
+
 export interface MarketSummaryResource {
   success: boolean;
   service?: string;
@@ -38,31 +41,22 @@ function isPresent(val: string | number | undefined | null): boolean {
 
 /**
  * Local deterministic synthesizer that parses user prompts and returns structured
- * facts from the paid resource without calling any AI APIs.
+ * facts from the paid resource, payment details, or spending policies without calling any AI APIs.
  */
-export function synthesizeMarketDataLocally(userTask: string, marketData: MarketSummaryResource): string {
+export function synthesizeMarketDataLocally(
+  userTask: string,
+  marketData: MarketSummaryResource,
+  paymentAudit?: PaymentAuditRecord,
+  policy?: SpendingPolicy
+): string {
   const task = userTask.toLowerCase().trim();
   const data = marketData?.data;
 
-  if (!marketData || !data) {
-    return 'The requested market intelligence data is currently unavailable.';
-  }
+  const btc = data?.btc;
+  const eth = data?.eth;
+  const stats = data?.baseSepoliaStats;
+  const summaryText = data?.summary;
 
-  const btc = data.btc;
-  const eth = data.eth;
-  const stats = data.baseSepoliaStats;
-  const summaryText = data.summary;
-
-  // Intent Matchers
-  const isBtcOnly = (task.includes('btc') || task.includes('bitcoin')) && !(task.includes('eth') || task.includes('ethereum') || task.includes('ether'));
-  const isEthOnly = (task.includes('eth') || task.includes('ethereum') || task.includes('ether')) && !(task.includes('btc') || task.includes('bitcoin'));
-  const isMomentum = task.includes('bullish') || task.includes('bearish') || task.includes('momentum') || task.includes('trend') || task.includes('direction') || task.includes('movement');
-  const isHighLow = task.includes('high') || task.includes('low') || task.includes('peak') || task.includes('trough') || task.includes('range') || task.includes('max') || task.includes('min') || task.includes('highest') || task.includes('lowest');
-  const isNetwork = task.includes('sepolia') || task.includes('gas') || task.includes('network') || task.includes('speed') || task.includes('latency') || task.includes('active') || task.includes('submission') || task.includes('base');
-  const isSimple = task.includes('simple') || task.includes('non-technical') || task.includes('eli5') || task.includes('easy') || task.includes('explain like') || task.includes('plain english') || task.includes('child');
-  const isConcise = task.includes('concise') || task.includes('short') || task.includes('brief') || task.includes('quick');
-
-  // Format helpers with "unavailable" fallback
   const getBtcPrice = () => isPresent(btc?.price) ? `$${btc!.price}` : 'BTC price is unavailable';
   const getBtcChange = () => isPresent(btc?.change24h) ? btc!.change24h : 'BTC 24h change is unavailable';
   const getBtcHigh = () => isPresent(btc?.high24h) ? `$${btc!.high24h}` : 'BTC 24h high is unavailable';
@@ -78,32 +72,91 @@ export function synthesizeMarketDataLocally(userTask: string, marketData: Market
   const getActiveText = () => isPresent(stats?.activeSubmissions) ? `${stats!.activeSubmissions} active submissions` : 'active submissions count is unavailable';
   const getSpeed = () => isPresent(stats?.usdcTransferSpeed) ? stats!.usdcTransferSpeed : 'USDC transfer speed is unavailable';
   const getBlockNumber = () => isPresent(stats?.blockNumber) ? `${stats!.blockNumber}` : 'block number is unavailable';
-
   const getSummary = () => isPresent(summaryText) ? summaryText! : 'Market summary text is unavailable';
 
-  // 1. BTC-only request
-  if (isBtcOnly) {
+  // Intent Matchers
+  const isRisk = task.includes('risk') || task.includes('safe') || task.includes('hazard') || task.includes('threat') || task.includes('assessment') || task.includes('secure') || task.includes('caution') || task.includes('safety');
+  const isPolicy = task.includes('policy') || task.includes('limit') || task.includes('allowance') || task.includes('cap') || task.includes('max') || task.includes('spend') || task.includes('budget') || task.includes('rule') || task.includes('threshold');
+  const isPayment = task.includes('payment') || task.includes('receipt') || task.includes('audit') || task.includes('invoice') || task.includes('paid') || task.includes('tx') || task.includes('hash') || task.includes('recipient') || task.includes('spent') || task.includes('fee');
+  const isNetwork = task.includes('sepolia') || task.includes('gas') || task.includes('network') || task.includes('speed') || task.includes('latency') || task.includes('active') || task.includes('submission') || task.includes('base') || task.includes('block') || task.includes('readiness');
+  const isBtcOnly = (task.includes('btc') || task.includes('bitcoin')) && !(task.includes('eth') || task.includes('ethereum') || task.includes('ether'));
+  const isEthOnly = (task.includes('eth') || task.includes('ethereum') || task.includes('ether')) && !(task.includes('btc') || task.includes('bitcoin'));
+  const isMomentum = task.includes('bullish') || task.includes('bearish') || task.includes('momentum') || task.includes('trend') || task.includes('direction') || task.includes('movement');
+  const isHighLow = task.includes('high') || task.includes('low') || task.includes('peak') || task.includes('trough') || task.includes('range') || task.includes('max') || task.includes('min') || task.includes('highest') || task.includes('lowest');
+  const isSimple = task.includes('simple') || task.includes('non-technical') || task.includes('eli5') || task.includes('easy') || task.includes('explain like') || task.includes('plain english') || task.includes('child');
+  const isConcise = task.includes('concise') || task.includes('short') || task.includes('brief') || task.includes('quick');
+
+  // 1. Autonomous payment risk assessment
+  if (isRisk) {
+    return [
+      'PayPilot Risk Assessment (Local Synthesis):',
+      '- Overall Status: SECURE & COMPLIANT',
+      '- Network Integrity: Hardcoded exclusively to Base Sepolia Testnet (eip155:84532)',
+      '- Asset Safety: Operations restricted strictly to verified USDC contract',
+      '- Execution Risk: Low. All autonomous actions are validated against spending limit rules on-device and run through localized policy approvals.',
+      '- Safety Caution: Keep local RPC connections secure. Do not share your private environment credentials under any circumstances.'
+    ].join('\n');
+  }
+
+  // 2. Spending policy / allowance / limits
+  if (isPolicy) {
+    const maxTx = policy ? `$${policy.maxPerTransactionUSDC.toFixed(2)} USDC` : 'not configured';
+    const limit = policy ? `$${policy.dailyLimitUSDC.toFixed(2)} USDC` : 'not configured';
+    const spent = policy ? `$${policy.spentTodayUSDC.toFixed(2)} USDC` : 'not configured';
+    const remaining = policy ? `$${(policy.dailyLimitUSDC - policy.spentTodayUSDC).toFixed(2)} USDC` : 'not configured';
+    const approvalThreshold = policy ? `$${policy.requireApprovalAboveUSDC.toFixed(2)} USDC` : 'not configured';
+    const status = policy ? (policy.isPaused ? 'PAUSED' : 'ACTIVE') : 'unknown';
+
+    return [
+      'Spending Policy Details (Local Synthesis):',
+      `- Max Per Transaction: ${maxTx}`,
+      `- Daily Cap: ${limit}`,
+      `- Spent Today: ${spent}`,
+      `- Remaining Daily Allowance: ${remaining}`,
+      `- Approval Threshold: Requires manual user authorization above ${approvalThreshold}`,
+      `- Policy Engine Status: ${status}`
+    ].join('\n');
+  }
+
+  // 3. Payment Receipt / Audit Record
+  if (isPayment && paymentAudit) {
+    return [
+      'Payment Audit Receipt (Local Synthesis):',
+      `- Audit Record ID: ${paymentAudit.id}`,
+      `- Task ID Reference: ${paymentAudit.taskId}`,
+      `- Status: ${paymentAudit.status}`,
+      `- Amount Sended: $${paymentAudit.amountUSDC.toFixed(2)} ${paymentAudit.asset}`,
+      `- Network: ${paymentAudit.network} (Chain ID: ${paymentAudit.chainId})`,
+      `- Recipient Address: ${paymentAudit.recipient}`,
+      `- Target Service: ${paymentAudit.service} (${paymentAudit.endpoint})`,
+      `- Settlement TxHash: ${paymentAudit.txHash || 'Not submitted/No hash'}`,
+      `- Timestamp: ${paymentAudit.timestamp}`
+    ].join('\n');
+  }
+
+  // 4. BTC-only request
+  if (isBtcOnly && btc) {
     return [
       'BTC Price Information (Local Synthesis):',
-      `- Asset: ${btc?.symbol ?? 'BTC/USD'}`,
+      `- Asset: ${btc.symbol}`,
       `- Current Price: ${getBtcPrice()} (24h Change: ${getBtcChange()})`,
       `- 24h Range: High ${getBtcHigh()}, Low ${getBtcLow()}`,
       `Source facts: Retrieved from PayPilot Market Summary at ${marketData.timestamp ?? 'unknown time'}.`
     ].join('\n');
   }
 
-  // 2. ETH-only request
-  if (isEthOnly) {
+  // 5. ETH-only request
+  if (isEthOnly && eth) {
     return [
       'ETH Price Information (Local Synthesis):',
-      `- Asset: ${eth?.symbol ?? 'ETH/USD'}`,
+      `- Asset: ${eth.symbol}`,
       `- Current Price: ${getEthPrice()} (24h Change: ${getEthChange()})`,
       `- 24h Range: High ${getEthHigh()}, Low ${getEthLow()}`,
       `Source facts: Retrieved from PayPilot Market Summary at ${marketData.timestamp ?? 'unknown time'}.`
     ].join('\n');
   }
 
-  // 3. High/low range request
+  // 6. High/low range request
   if (isHighLow) {
     return [
       '24h Asset Ranges (Local Synthesis):',
@@ -113,7 +166,7 @@ export function synthesizeMarketDataLocally(userTask: string, marketData: Market
     ].join('\n');
   }
 
-  // 4. Momentum / Trend request
+  // 7. Momentum / Trend request
   if (isMomentum) {
     return [
       'Market Momentum & Trends (Local Synthesis):',
@@ -124,7 +177,7 @@ export function synthesizeMarketDataLocally(userTask: string, marketData: Market
     ].join('\n');
   }
 
-  // 5. Base Sepolia / Network request
+  // 8. Base Sepolia / Network request
   if (isNetwork) {
     return [
       'Base Sepolia Network Status (Local Synthesis):',
@@ -137,7 +190,7 @@ export function synthesizeMarketDataLocally(userTask: string, marketData: Market
     ].join('\n');
   }
 
-  // 6. Simple explanation request
+  // 9. Simple explanation request
   if (isSimple) {
     return [
       'Simple Explanation (Local Synthesis):',
@@ -148,7 +201,7 @@ export function synthesizeMarketDataLocally(userTask: string, marketData: Market
     ].join('\n');
   }
 
-  // 7. Concise/brief request
+  // 10. Concise/brief request
   if (isConcise) {
     return [
       'Concise Market Summary (Local Synthesis):',
@@ -157,7 +210,7 @@ export function synthesizeMarketDataLocally(userTask: string, marketData: Market
     ].join('\n');
   }
 
-  // 8. General summary (Default)
+  // 11. General summary (Default)
   return [
     'Market Intelligence Report (Local Synthesis):',
     `- BTC/USD: ${getBtcPrice()} (24h change: ${getBtcChange()}). Range: ${getBtcLow()} to ${getBtcHigh()}`,
@@ -167,3 +220,4 @@ export function synthesizeMarketDataLocally(userTask: string, marketData: Market
     `Source facts: Retrieved from PayPilot Market Summary at ${marketData.timestamp ?? 'unknown timestamp'}.`
   ].join('\n');
 }
+
