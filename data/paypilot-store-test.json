@@ -1,0 +1,31 @@
+{
+  "policy": {
+    "maxPerTransactionUSDC": 1,
+    "dailyLimitUSDC": 5,
+    "spentTodayUSDC": 0,
+    "allowlistServices": [
+      "*"
+    ],
+    "requireApprovalAboveUSDC": 2,
+    "isPaused": false,
+    "lastResetTimestamp": "2026-08-12"
+  },
+  "transactions": [
+    {
+      "id": "tx-isolation-test-1786537906058",
+      "timestamp": "1:00:00 pm",
+      "isoTimestamp": "2026-08-12T12:31:46.058Z",
+      "serviceName": "PayPilot Isolation Test API",
+      "endpoint": "/api/paid/isolation-test",
+      "amountUSDC": 0.01,
+      "recipientAddress": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+      "txHash": "0xmock_isolation_test_hash_44444444444444444444444444444444444444",
+      "network": "eip155:84532",
+      "chainId": 84532,
+      "status": "SUCCESS",
+      "isTestnet": true
+    }
+  ],
+  "uniqueUsers": [],
+  "lastUpdated": "2026-08-12T12:31:46.059Z"
+}
