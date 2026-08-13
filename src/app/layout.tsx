@@ -15,6 +15,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "PayPilot - Autonomous Base USDC Payment Agent",
   description: "Autonomous payment agent for Base Sepolia testnet using USDC and x402 protocol with strict user spending limits.",
+  other: {
+    // Base Builder domain verification tag
+    "base:app_id": "6a7d934a530f514e5de6ea4c",
+  },
 };
 
 export default function RootLayout({
