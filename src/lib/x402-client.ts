@@ -6,6 +6,16 @@ import { globalPolicyEngine } from './policy';
 import { dataStore } from './storage';
 import { publicClient } from './wallet';
 import { X402PaymentTerms, PaymentTransaction } from '@/types';
+import { Attribution } from 'ox/erc8021';
+
+/**
+ * ERC-8021 Builder Code attribution suffix for Base Builder (bc_016f40ud).
+ * Generated once at module load via the official ox/erc8021 Attribution API.
+ * viem's walletClient reads client.dataSuffix and auto-appends it to every
+ * transaction's calldata inside sendTransaction — which writeContract calls
+ * internally — so the existing transfer() flow is completely unchanged.
+ */
+const BUILDER_CODE_DATA_SUFFIX = Attribution.toDataSuffix({ codes: ['bc_016f40ud'] });
 
 /**
  * Audit Log Entry for Payment Attempts
@@ -304,6 +314,10 @@ export async function executeX402PaymentAndFetch(
       account,
       chain: baseSepolia,
       transport: http(PAYPILOT_CONFIG.chain.rpcUrl),
+      // ERC-8021: append Builder Code suffix to every transaction's calldata.
+      // viem's sendTransaction (called internally by writeContract) reads
+      // client.dataSuffix and concatenates it after the ABI-encoded calldata.
+      dataSuffix: BUILDER_CODE_DATA_SUFFIX,
     });
 
     addStep(8, 'Broadcasting On-Chain Tx', 'INFO', `Broadcasting $${terms.amountUSDC.toFixed(2)} USDC transfer on Base Sepolia...`);

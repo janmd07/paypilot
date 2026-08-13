@@ -372,6 +372,23 @@ describe('Phase 4: Real AI Agent & x402 Client Flow Unit Tests', () => {
     const testContent = fs.readFileSync(testDbPath, 'utf-8');
     expect(testContent).toContain(newTx.id);
   });
+
+  it('14. ERC-8021: Attribution.toDataSuffix produces the exact Builder Code suffix for bc_016f40ud', () => {
+    // Verifies the official ox/erc8021 API produces the exact suffix from the
+    // Base Builder registration page, so the walletClient dataSuffix is correct.
+    const { Attribution } = require('ox/erc8021');
+    const suffix = Attribution.toDataSuffix({ codes: ['bc_016f40ud'] });
+
+    // Must exactly match the encoded suffix supplied by Base Builder
+    expect(suffix).toBe('0x62635f30313666343075640b0080218021802180218021802180218021');
+
+    // Sanity: must begin with hex-encoded 'bc_016f40ud' (0x62635f30313666343075640b)
+    expect(suffix.startsWith('0x62635f30313666343075640b')).toBe(true);
+
+    // Sanity: must end with the canonical ERC-8021 terminator
+    // (8 repetitions of 0x8021 = 0x80218021802180218021802180218021)
+    expect(suffix.endsWith('80218021802180218021802180218021')).toBe(true);
+  });
 });
 
 
